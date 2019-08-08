@@ -1,24 +1,24 @@
 import sys
 import datetime
 import array
+import pycurl
+import StringIO
+
+
 
 
 ARGS = {
-    '-year': "for what year to analyze data",
-    '-fids': 'fields ids comma separated',
-    '-lid': 'layerid',
-    '-coln': 'column name',
-    '-colval': 'column values comma separated',
-    '-ndvi_filt':'some ndvi curve metrics filter',
-    '-alg':'averaging algorithm: average, dlog)',
-    '-o': 'output filename without extension',
-    '-mindoy': 'ndvi curve min day of the year ',
-    '-maxdoy': 'ndvi curve max day of the year '
+    '-u': "username to get access to USGS/SciHub",
+    '-p': "password to get access to USGS/SciHub",
+    '-b': 'border geojson file with polygon/multipolygon geometry',
+    '-p': 'platform: s2|l8',
+    '-sd': 'start date yyyymmdd',
+    '-ed': 'end date yyyymmdd',
+    '-cld': 'max cloud filter',
+    '-o': 'output csv file name'
 }
 
-USAGE_EXAMPLES = ("ndvi_metrics.py ...\n"
-                    "ndvi_metrics.py ...\n"
-                )
+USAGE_EXAMPLES = ("downloader.py -u user -p password -b 1.geojson -p s2 -sd 20190501 -ed 20191001 -cld 50 -o 1.csv\n")
 
 
 def check_input_args () :
@@ -51,7 +51,7 @@ def print_usage () :
     return 0
 
 
-def get_option_value (optname, isflag = False) :
+def get_option_Value (optname, isflag = False) :
     for i in range(1,len(sys.argv)) :
         if (sys.argv[i] == optname) :
             if isflag : return True
@@ -61,3 +61,29 @@ def get_option_value (optname, isflag = False) :
     return ""
 
 #############################################################
+
+####################
+# create usgs_query
+# create scihub_query
+# parse usgs_query
+# parse sci_hub query
+# save output csv file
+
+class MetadataExtractor:
+    def create_query () :
+        print ()
+    def parse_response () :
+        print ()
+    def write_output_file () :
+        print ()
+
+class USGSMetadataExtractor(MetadataExtractor):
+    def create_query () :
+        print ()
+    def parse_response () :
+        print ()
+    def write_output_file () :
+        print ()
+
+###################
+print_usage()
