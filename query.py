@@ -5,7 +5,6 @@ import datetime
 import array
 import json
 import csv
-import pycurl
 from io import BytesIO
 import requests
 
