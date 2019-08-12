@@ -1,4 +1,5 @@
 import console_utils
+import sys
 import os
 import datetime
 import array
@@ -296,7 +297,9 @@ class USGSMetadataExtractor :
         return list_result
 
 ###################
-console_utils.print_usage(QUERY_ARGS)
+if (len(sys.argv) == 1) :
+    console_utils.print_usage(QUERY_ARGS)
+    #return 0
 
 startdate = datetime.datetime.strptime('20170101','%Y%m%d')
 enddate = (datetime.datetime.strptime('20191231','%Y%m%d') + 
