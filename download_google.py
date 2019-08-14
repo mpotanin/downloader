@@ -125,7 +125,7 @@ if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
     #exit 0
 
-read_args_from_file = True
+read_args_from_file = False
 json_file_params = 'download_l8_params.json'
 
 args = ( sys.argv if not read_args_from_file
@@ -133,7 +133,7 @@ args = ( sys.argv if not read_args_from_file
 
 if not console_utils.check_input_args(DOWNLOAD_GOOGLE_ARGS,args) :
     print ('ERROR: not valid input args')
-    #exit(1)
+    exit(1)
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = console_utils.get_option_value(args,'-cred')
 input_csv = console_utils.get_option_value(args,'-i')
