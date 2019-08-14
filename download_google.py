@@ -139,11 +139,15 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = console_utils.get_option_value(ar
 input_csv = console_utils.get_option_value(args,'-i')
 output_path = console_utils.get_option_value(args,'-o')
 
+num_success = 0
+num_error = 0
 with open(input_csv,newline='') as csvfile :
     csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
     for row in csvreader :
         dest_folder = None
         bucket_folder = None
+        if len(row)<=1 : continue 
+
         if (row[0]=='Sentinel 2') :
             bucket_folder = S2BucketFolder(S2BucketFolder.get_prefix_by_sceneid(row[1]))
             dest_folder = row[1]+'.SAFE'
@@ -157,16 +161,11 @@ with open(input_csv,newline='') as csvfile :
                 
         if not bucket_folder.download_all(full_path + '__temp') :
             print ('ERROR: downloading scene: ' + dest_folder)
-        else : os.rename(full_path + '__temp',full_path)
+            num_error+=1
+        else : 
+            os.rename(full_path + '__temp',full_path)
+            num_success+=1
 
-                        #storage_client = storage.Client()
-#blobs = storage_client.list_blobs('gcp-public-data-sentinel-2',prefix='tiles/33/U/UP/S2A_MSIL1C_20150711T100006_N0204_R122_T33UUP_20150711T100008.SAFE')
-
-#https://console.cloud.google.com/storage/browser/gcp-public-data-sentinel-2/tiles/33/U/UP/S2A_MSIL1C_20150704T101337_N0202_R022_T33UUP_20160606T205155.SAFE/
-#https://storage.cloud.google.com/gcp-public-data-sentinel-2/tiles/33/U/UP/S2A_MSIL1C_20150704T101337_N0202_R022_T33UUP_20160606T205155.SAFE/INSPIRE.xml?_ga=2.243900869.-1305591509.1565596600
-
-
-#gcp-public-data-sentinel-2/tiles/33/U/UP/S2A_MSIL1C_20150704T101337_N0202_R022_T33UUP_20160606T205155.SAFE
-
-
-
+print ("Success downloads: " + str(num_success))
+print ("Downloads failed: " + str(num_error))
+exit(0)
