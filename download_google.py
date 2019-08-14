@@ -11,6 +11,7 @@ from io import BytesIO
 import requests
 import hashlib
 import base64
+import shutil
 
 
 
@@ -117,7 +118,7 @@ if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
     #exit 0
 
-read_args_from_file = True
+read_args_from_file = False
 json_file_params = 'download_l8_params.json'
 
 args = ( sys.argv if not read_args_from_file
@@ -144,7 +145,9 @@ with open(input_csv,newline='') as csvfile :
             dest_folder = row[1]
         else : continue
         
-        dest_folder+='__temp'
+        full_path = output_path +'/' + dest_folder
+        if (os.path.exists(full_path)): shutil.rmtree(full_path)
+                
         if not bucket_folder.download_all(output_path,dest_folder) :
             print ('ERROR: downloading scene data: ' + dest_folder)
             exit(2)
