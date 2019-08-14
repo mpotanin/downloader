@@ -82,15 +82,22 @@ class BucketFolder :
                 return False
         return True
 
-    def download_all (self, dest_path, dest_folder) :
+    def download_all (self, dest_path) :
+        
         storage_client = storage.Client()
         blobs = storage_client.list_blobs(self.bucket_name,prefix=self.bucket_prefix)
 
+        scene_exists = False
+
         for blob in blobs:
+            scene_exists = True
             if not self.__is_blob_folder(blob) :
                 if not self.__download_file(blob,dest_path +'/' +dest_folder) : return False
         
-        return True
+        if not scene_exists :
+            print ("ERROR: blob doesn't exist: " + self.bucket_prefix)
+            return False
+        else : return True
 
 
 class S2BucketFolder(BucketFolder) :
@@ -118,7 +125,7 @@ if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
     #exit 0
 
-read_args_from_file = False
+read_args_from_file = True
 json_file_params = 'download_l8_params.json'
 
 args = ( sys.argv if not read_args_from_file
@@ -126,7 +133,7 @@ args = ( sys.argv if not read_args_from_file
 
 if not console_utils.check_input_args(DOWNLOAD_GOOGLE_ARGS,args) :
     print ('ERROR: not valid input args')
-    exit(1)
+    #exit(1)
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = console_utils.get_option_value(args,'-cred')
 input_csv = console_utils.get_option_value(args,'-i')
@@ -148,12 +155,9 @@ with open(input_csv,newline='') as csvfile :
         full_path = output_path +'/' + dest_folder
         if (os.path.exists(full_path)): shutil.rmtree(full_path)
                 
-        if not bucket_folder.download_all(output_path,dest_folder) :
-            print ('ERROR: downloading scene data: ' + dest_folder)
-            exit(2)
-        else :
-            os.rename(output_path +'/' + dest_folder,
-                    output_path +'/' + dest_folder[:-6])
+        if not bucket_folder.download_all(full_path + '__temp') :
+            print ('ERROR: downloading scene: ' + dest_folder)
+        else : os.rename(full_path + '__temp',full_path)
 
                         #storage_client = storage.Client()
 #blobs = storage_client.list_blobs('gcp-public-data-sentinel-2',prefix='tiles/33/U/UP/S2A_MSIL1C_20150711T100006_N0204_R122_T33UUP_20150711T100008.SAFE')
