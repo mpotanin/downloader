@@ -42,7 +42,7 @@ def get_option_value (args, optname, isflag = False) :
     else : return ""
 
 
-def parse_console_args_from_json_file (json_file) :
+def parse_args_from_json_file (json_file) :
     args = list()
     try:
         with open (json_file, 'r') as file :

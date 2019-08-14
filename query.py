@@ -10,9 +10,9 @@ import requests
 
 
 
-QUERY_ARGS = {
+QUERY_ARGS_DEF = {
     '-u': 'username to query USGS/SciHub',
-    'p': 'password to query USGS/SciHub',
+    '-p': 'password to query USGS/SciHub',
     '-b': 'border geojson file with polygon/multipolygon geometry',
     '-sat': 'platform: s2|l8',
     '-sd': 'start date yyyymmdd',
@@ -184,7 +184,7 @@ class SciHubMetadataExtractor :
             
             return q_param
     
-    def retrieve_all (self, user, pwd, geojson_file, stardate, enddate, cloud_max) :
+    def retrieve_all (self, user, pwd, geojson_file, startdate, enddate, cloud_max) :
 
         q_param = (SciHubMetadataExtractor.
                     __compose_q_param(geojson_file,startdate,enddate,cloud_max))
@@ -295,11 +295,27 @@ class USGSMetadataExtractor :
                     
         return list_result
 
+def init_console_args_from_json_file (args_def, json_file) :
+    args = list()
+    try:
+        with open (json_file, 'r') as file :
+            data_from_file=file.read()
+            json_obj = json.loads(data_from_file)
+            args.append(sys.argv[0])
+            for opt in json_obj:
+                args.append(opt)
+                args.append(json_obj[opt])
+    except:
+        print ('ERROR: parsing json file: ' + json_file)
+        return list()
+    return args
+
 ###################
 if (len(sys.argv) == 1) :
-    console_utils.print_usage(QUERY_ARGS)
-    #return 0
+    console_utils.print_usage(QUERY_ARGS_DEF)
+    #exit(0)
 
+'''
 startdate = datetime.datetime.strptime('20170101','%Y%m%d')
 enddate = (datetime.datetime.strptime('20191231','%Y%m%d') + 
             datetime.timedelta(days=1) - datetime.timedelta(seconds=1))
@@ -315,15 +331,41 @@ list_metadata_l8 = USGSMetadataExtractor().retrieve_all(
 
 user_sci = 'mpotanin'
 pwd_sci = 'kosmosnimkiesa'
-list_metadata_s2 = SciHubMetadataExtractor().retrieve_all(
-                    user_sci,pwd_sci,geojson_file,startdate,enddate,cloud_max)
-MetadataOperations.create_csv_file(list_metadata_l8,csv_file_l8)
-MetadataOperations.create_csv_file(list_metadata_s2,csv_file_s2)
+'''
 
 
+read_args_from_file = True
+json_file_params = 's2_query_params.json'
 
-print ('l8: ' + str(len(list_metadata_l8)) + 
-        '\ns2: ' + str(len(list_metadata_s2)))
+
+args = ( sys.argv if not read_args_from_file
+        else console_utils.parse_args_from_json_file(json_file_params))
+
+if not console_utils.check_input_args(QUERY_ARGS_DEF,args) :
+    print ('ERROR: not valid input args')
+    exit(1)
+
+user = console_utils.get_option_value(args,'-u')
+pwd = console_utils.get_option_value(args,'-p')
+startdate = datetime.datetime.strptime(console_utils.get_option_value(args,'-sd'),
+                                        '%Y-%m-%d')
+enddate = datetime.datetime.strptime(console_utils.get_option_value(args,'-ed'),
+                                        '%Y-%m-%d')
+cloud_max = int(console_utils.get_option_value(args,'-cld'))
+geojson_file = console_utils.get_option_value(args,'-b')
+
+platform = console_utils.get_option_value(args,'-sat')
+csv_file = console_utils.get_option_value(args,'-o')
+
+list_metadata = (SciHubMetadataExtractor().retrieve_all(
+                            user,pwd,geojson_file,startdate,enddate,cloud_max)
+                    if (platform == 's2') else 
+                USGSMetadataExtractor().retrieve_all(
+                            user,pwd,geojson_file,startdate,enddate,cloud_max))
+MetadataOperations.create_csv_file(list_metadata,csv_file)
+
+
+print (platform + ': '  + str(len(list_metadata)))
 #print ('ERROR: SciHubMetadataExtractor:retrieve_all\n')
 
 
