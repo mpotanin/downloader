@@ -92,7 +92,7 @@ class BucketFolder :
         for blob in blobs:
             scene_exists = True
             if not self.__is_blob_folder(blob) :
-                if not self.__download_file(blob,dest_path +'/' +dest_folder) : return False
+                if not self.__download_file(blob,dest_path) : return False
         
         if not scene_exists :
             print ("ERROR: blob doesn't exist: " + self.bucket_prefix)
