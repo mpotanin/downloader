@@ -68,7 +68,7 @@ class BucketFolder :
         else :
             return (blob.name[:blob.name.rfind('/')])[len(self.bucket_prefix):]
 
-    def __download_file (self,blob,dest_folder) :
+    def __download_file (self,blob,dest_folder, attempts=1, interval_sec = 0) :
         dest_filename = self.__get_filename(blob)
         dest_path = dest_folder + self.__get_relative_path(blob)
         os.makedirs(dest_path,exist_ok=True)
