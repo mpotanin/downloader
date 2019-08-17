@@ -1,6 +1,7 @@
 import console_utils
 import sys
 import os
+import time
 import datetime
 import array
 import json
@@ -19,7 +20,8 @@ import shutil
 DOWNLOAD_GOOGLE_ARGS = {
     '-i': 'input csv file',
     '-o': 'output folder',
-    '-cred': 'google credentials json file path'
+    '-cred': 'google credentials json file path',
+    '-log' : 'errors file log '
 }
 
 USAGE_EXAMPLES = ("download_google.py -i s2.csv -o raw/sentinel2\n")
@@ -68,7 +70,7 @@ class BucketFolder :
         else :
             return (blob.name[:blob.name.rfind('/')])[len(self.bucket_prefix):]
 
-    def __download_file (self,blob,dest_folder, attempts=1, interval_sec = 0) :
+    def __download_file (self,blob,dest_folder) :
         dest_filename = self.__get_filename(blob)
         dest_path = dest_folder + self.__get_relative_path(blob)
         os.makedirs(dest_path,exist_ok=True)
@@ -76,14 +78,11 @@ class BucketFolder :
         blob.download_to_filename(dest_full_path)
         if not BucketFolder.__is_blob_copy_correct(blob,dest_full_path) :
             os.remove(dest_full_path)
-            blob.download_to_filename(dest_full_path)
-            if not BucketFolder.__is_blob_copy_correct(blob,dest_full_path) :
-                os.remove(dest_full_path)
-                return False
-        return True
+            return False
+        else: return True
 
-    def download_all (self, dest_path) :
-        
+    def try_download_all (self, dest_path) :
+
         storage_client = storage.Client()
         blobs = storage_client.list_blobs(self.bucket_name,prefix=self.bucket_prefix)
 
@@ -92,11 +91,11 @@ class BucketFolder :
         for blob in blobs:
             scene_exists = True
             if not self.__is_blob_folder(blob) :
-                if not self.__download_file(blob,dest_path) : return False
+                if not self.__download_file(blob,dest_path) : 
+                    raise Exception('file download failure: ' + blob.name)
         
-        if not scene_exists :
-            print ("ERROR: blob doesn't exist: " + self.bucket_prefix)
-            return False
+        if not scene_exists : 
+            raise Exception("Scene doesn't exist: " + self.bucket_prefix)
         else : return True
 
 
@@ -125,8 +124,8 @@ if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
     #exit 0
 
-read_args_from_file = False
-json_file_params = 'download_l8_params.json'
+read_args_from_file = True
+json_file_params = 'download_s2_params.json'
 
 args = ( sys.argv if not read_args_from_file
         else console_utils.parse_args_from_json_file(json_file_params))
@@ -138,9 +137,14 @@ if not console_utils.check_input_args(DOWNLOAD_GOOGLE_ARGS,args) :
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = console_utils.get_option_value(args,'-cred')
 input_csv = console_utils.get_option_value(args,'-i')
 output_path = console_utils.get_option_value(args,'-o')
+log_file = console_utils.get_option_value(args,'-log')
+
 
 num_success = 0
 num_error = 0
+download_attempts = 2
+interval_sec = 10
+failed_scenes = list()
 with open(input_csv,newline='') as csvfile :
     csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
     for row in csvreader :
@@ -158,14 +162,29 @@ with open(input_csv,newline='') as csvfile :
         
         full_path = output_path +'/' + dest_folder
         if (os.path.exists(full_path)): shutil.rmtree(full_path)
-                
-        if not bucket_folder.download_all(full_path + '__temp') :
-            print ('ERROR: downloading scene: ' + dest_folder)
-            num_error+=1
-        else : 
-            os.rename(full_path + '__temp',full_path)
-            num_success+=1
+             
+        for i in range(0,download_attempts) :
+            try :
+                bucket_folder.try_download_all(full_path + '__temp')
+                os.rename(full_path + '__temp',full_path)
+                num_success+=1
+                break
+            except Exception as inst: 
+                if (i==download_attempts-1) :
+                    failed_scenes.append({"scene":dest_folder,
+                                        "error_msg" :str(inst)})
+                    num_error+=1
+                else : time.sleep(interval_sec)
+        
 
+if (num_error > 0) :
+    with open (log_file, 'w', newline='') as file :
+        writer = csv.DictWriter(file, fieldnames=["scene","error_msg"])
+        writer.writeheader()
+        for e in failed_scenes :
+            writer.writerow(e)
+        file.close()
+        
 print ("Success downloads: " + str(num_success))
-print ("Downloads failed: " + str(num_error))
+print ("Failed downloads: " + str(num_error))
 exit(0)

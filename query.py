@@ -315,24 +315,6 @@ if (len(sys.argv) == 1) :
     console_utils.print_usage(QUERY_ARGS_DEF)
     exit(0)
 
-'''
-startdate = datetime.datetime.strptime('20170101','%Y%m%d')
-enddate = (datetime.datetime.strptime('20191231','%Y%m%d') + 
-            datetime.timedelta(days=1) - datetime.timedelta(seconds=1))
-geojson_file = 'pestr_border.geojson'
-cloud_max = 50
-user_usgs = 'mpotanin'
-pwd_usgs = 'kosmosnimkiUSGS1'
-csv_file_l8 = 'l8.csv'
-csv_file_s2 = 's2.csv'
-
-list_metadata_l8 = USGSMetadataExtractor().retrieve_all(
-                    user_usgs,pwd_usgs,geojson_file,startdate,enddate,cloud_max)
-
-user_sci = 'mpotanin'
-pwd_sci = 'kosmosnimkiesa'
-'''
-
 
 read_args_from_file = False
 json_file_params = 's2_query_params.json'
