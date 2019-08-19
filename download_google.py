@@ -148,6 +148,7 @@ log_file = console_utils.get_option_value(args,'-log')
 num_success = 0
 num_error = 0
 download_attempts = 2
+interval_long_sec = 300
 interval_sec = 10
 failed_scenes = list()
 with open(input_csv,newline='') as csvfile :
@@ -179,7 +180,9 @@ with open(input_csv,newline='') as csvfile :
                     failed_scenes.append({"scene":dest_folder,
                                         "error_msg" :str(inst)})
                     num_error+=1
-                else : time.sleep(interval_sec)
+                else :
+                    if (str(inst)[0:4]=='503') : time.sleep(interval_long_sec)
+                    else : time.sleep(interval_sec)
         
 
 if (num_error > 0) :
