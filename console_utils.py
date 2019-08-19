@@ -1,8 +1,23 @@
+"""
+This module provides some functionality to work with command line arguments.
+PS. May be it's a good idea to shift towards "import argparse" instead of "bike invention"
+"""
+
 import sys
 import json
 
+
 def check_input_args (args_def, args) :
-    #TODO: loop sys.argv
+    """ 
+    Verifies if input args matches template
+
+    Args:
+        args_def (Dictionary): args template
+        args (List): input arguments to check
+
+    Returns:
+        bool: True for corret input, False otherwise
+    """
     for i in range(1,len(args)) :
         if (args[i][0]=="-") :
             if (args[i] not in args_def.keys()) :
@@ -14,7 +29,7 @@ def check_input_args (args_def, args) :
     return True
 
 def print_usage (args_def) :
-    #TODO: print args_def
+    """ prints arguments template """
     max_width = 80
     print("")
     print("Usage:")
@@ -32,6 +47,18 @@ def print_usage (args_def) :
 
 
 def get_option_value (args, optname, isflag = False) :
+    """
+    Gets option value by its name.
+
+    Args:
+        args (List): input arguments
+        optname (str): optiona name, e.g. "-o"
+        isflag (bool): True if a flag option
+    
+    Returns:
+        string: option value or empty string ""
+    """
+
     for i in range(1,len(args)) :
         if (args[i] == optname) :
             if isflag : return True
@@ -43,6 +70,15 @@ def get_option_value (args, optname, isflag = False) :
 
 
 def parse_args_from_json_file (json_file) :
+    """
+    Parse arguments to run script from json file.
+
+    Args:
+        json_file (string): json file path
+    
+    Returns:
+        List: if success - parsed arguments, otherwise - empty list
+    """
     args = list()
     try:
         with open (json_file, 'r') as file :
