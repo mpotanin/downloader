@@ -1,3 +1,10 @@
+"""
+This script generates queries to USGS/SciHUB metedata services and writes response into csv file.
+Query destination depends on input satellite type: 
+    'Landsat 8' -> USGS service
+    'Sentinel 2' -> SciHUB service
+"""
+
 import console_utils
 import sys
 import os
@@ -23,28 +30,28 @@ QUERY_ARGS_DEF = {
 
 QUERY_USAGE_EXAMPLES = ("query.py -u user:password -b 1.geojson -p s2 -sd 20190501 -ed 20191001 -cld 50 -o 1.csv\n")
 
-#############################################################
 
-####################
-# create usgs_query
-# create scihub_query
-# parse usgs_query
-# parse sci_hub query
-# save output csv file
 class BBOX :
+    """
+    Represents bounding box rectangular.
+    """
     def __init__(self,minx=1e+100,miny=1e+100,maxx=-1e+100,maxy=-1e+100) :
         self.minx = minx
         self.miny = miny
         self.maxx = maxx
         self.maxy = maxy
-    def undefined (self) :
+    def is_undefined (self) :
         if (self.minx>self.maxx) : return True
-        else : return False 
+        else : return False
+
 
 class MetadataEntity :
+    """
+    Single scene metadata record. Only main fields are included.
+    """
     def __init__(self,platform,sceneid,productid,acqdate,tileid) :
-        self.platform = platform
-        self.sceneid = sceneid
+        self.platform = platform    # 'Sentinel 2' | 'Landsat 8'
+        self.sceneid = sceneid      
         self.productid = productid
         self.acqdate = acqdate
         self.tileid = tileid
@@ -66,6 +73,7 @@ class MetadataEntity :
 class MetadataOperations:
     @staticmethod
     def create_csv_file (metadata_list, csv_file) :
+        """Creates csv file from metadata list."""
         try :
             with open (csv_file, 'w', newline='') as file :
                 writer = csv.DictWriter(file, fieldnames=MetadataEntity.get_fieldnames())
@@ -78,7 +86,9 @@ class MetadataOperations:
             return False
         return True
 
+
 class GeoJSONParser :
+    
     @staticmethod
     def calculate_bbox (geom_json) :
         
@@ -106,6 +116,10 @@ class GeoJSONParser :
     
     @staticmethod
     def extract_geometry_from_geojson (geojson_file) :
+        """
+        Parse geometry type and coordinates from geojson into memory
+        Returns: json Dictionary object 
+        """
         try:
             with open (geojson_file, 'r') as file :
                 data_from_file=file.read()
@@ -115,24 +129,7 @@ class GeoJSONParser :
             print ("ERROR: can't extract geometry from file: " + geojson_file)
             return dict()
 
-    """
-    @staticmethod
-    def convert_coordinates_to_wkt (geom_json) :
-        gtype = geom_json["type"]
-        if (gtype == 'Point') :
-            return ('"Intersects(' + str(geom_json["coordinates"][1]) + ',' + 
-                     str(geom_json["coordinates"][0]) + ')"')
-        elif (gtype == 'Polygon' or gtype == 'MultiPolygon' ) :
-            outline_ring = (geom_json["coordinates"][0] 
-                            if gtype == 'Polygon' else geom_json["coordinates"][0][0])
-            wkt_text = '"Intersects(POLYGON(('
-            for p in outline_ring :
-                wkt_text += str(p[0]) + ' ' + str(p[1]) + ','
-            return wkt_text[:-1] + ')))"' 
-        else :
-            return ''
-
-    """
+    
 
 class SciHubMetadataExtractor :
     base_url = 'https://scihub.copernicus.eu/dhus/search?format=json'
@@ -168,7 +165,7 @@ class SciHubMetadataExtractor :
     def __compose_q_param (geojson_file, stardate, enddate, cloud_max) :
         bbox = GeoJSONParser.calculate_bbox(
                 GeoJSONParser.extract_geometry_from_geojson(geojson_file))
-        if bbox.undefined() : 
+        if bbox.is_undefined() : 
             return ''
         else :
             q_param= 'footprint:' + SciHubMetadataExtractor.__convert_bbox_to_wktpolygon(bbox)
@@ -185,7 +182,9 @@ class SciHubMetadataExtractor :
             return q_param
     
     def retrieve_all (self, user, pwd, geojson_file, startdate, enddate, cloud_max) :
-
+        """
+        main method that queries SciHUB service and saves metadata into in memory list
+        """
         q_param = (SciHubMetadataExtractor.
                     __compose_q_param(geojson_file,startdate,enddate,cloud_max))
         if (q_param=='') :
@@ -257,7 +256,7 @@ class USGSMetadataExtractor :
             return ''
         bbox = GeoJSONParser.calculate_bbox(
                 GeoJSONParser.extract_geometry_from_geojson(geojson_file))
-        if bbox.undefined() : return list()
+        if bbox.is_undefined() : return list()
 
         request_body = dict()
         request_body["datasetName"] = "LANDSAT_8_C1"
@@ -339,6 +338,10 @@ geojson_file = console_utils.get_option_value(args,'-b')
 platform = console_utils.get_option_value(args,'-sat')
 csv_file = console_utils.get_option_value(args,'-o')
 
+# Steps:
+# 1. create MetadataExtractor (SciHubMetadataExtractor | USGSMetadataExtractor)
+# 2. query metadata and save it into in memory list 
+# 3. save in memory list to disk into csv file
 list_metadata = (SciHubMetadataExtractor().retrieve_all(
                             user,pwd,geojson_file,startdate,enddate,cloud_max)
                     if (platform == 's2') else 
