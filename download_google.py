@@ -124,7 +124,7 @@ if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
     #exit 0
 
-read_args_from_file = True
+read_args_from_file = False
 json_file_params = 'download_s2_params.json'
 
 args = ( sys.argv if not read_args_from_file
@@ -144,6 +144,7 @@ num_success = 0
 num_error = 0
 download_attempts = 2
 interval_sec = 10
+interval_sec_long = 300
 failed_scenes = list()
 with open(input_csv,newline='') as csvfile :
     csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
@@ -175,7 +176,6 @@ with open(input_csv,newline='') as csvfile :
                                         "error_msg" :str(inst)})
                     num_error+=1
                 else : time.sleep(interval_sec)
-        
 
 if (num_error > 0) :
     with open (log_file, 'w', newline='') as file :
