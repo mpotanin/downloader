@@ -309,7 +309,17 @@ def init_console_args_from_json_file (args_def, json_file) :
         return list()
     return args
 
-###################
+
+
+#################################################################################################
+# 
+# 1. Parse input args
+# 2. Create MetadataExtractor (SciHubMetadataExtractor | USGSMetadataExtractor)
+# 3. Query metadata service and save it into in-memory list 
+# 4. Save in-memory list to disk as csv file
+#
+#################################################################################################
+
 if (len(sys.argv) == 1) :
     console_utils.print_usage(QUERY_ARGS_DEF)
     exit(0)
@@ -338,10 +348,7 @@ geojson_file = console_utils.get_option_value(args,'-b')
 platform = console_utils.get_option_value(args,'-sat')
 csv_file = console_utils.get_option_value(args,'-o')
 
-# Steps:
-# 1. create MetadataExtractor (SciHubMetadataExtractor | USGSMetadataExtractor)
-# 2. query metadata and save it into in memory list 
-# 3. save in memory list to disk into csv file
+
 list_metadata = (SciHubMetadataExtractor().retrieve_all(
                             user,pwd,geojson_file,startdate,enddate,cloud_max)
                     if (platform == 's2') else 
