@@ -22,8 +22,8 @@ QUERY_ARGS_DEF = {
     '-p': 'password to query USGS/SciHub',
     '-b': 'border geojson file with polygon/multipolygon geometry',
     '-sat': 'platform: s2|l8',
-    '-sd': 'start date yyyymmdd',
-    '-ed': 'end date yyyymmdd',
+    '-sd': 'start date yyyy-mm-dd',
+    '-ed': 'end date yyyy-mm-dd',
     '-cld': 'max cloud filter',
     '-o': 'output csv file name'
 }
@@ -65,7 +65,7 @@ class MetadataEntity :
         return {'platform':self.platform,
                 'sceneid':self.sceneid,
                 'productid':self.productid,
-                'acqdate':self.acqdate,
+                'acqdate':self.acqdate.strftime("%Y-%m-%d %H:%M:%S"),
                 'tileid':self.tileid}
     
     
@@ -326,7 +326,7 @@ if (len(sys.argv) == 1) :
 
 
 read_args_from_file = False
-json_file_params = 's2_query_params.json'
+json_file_params = 's2_query_param.json'
 
 
 args = ( sys.argv if not read_args_from_file

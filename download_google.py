@@ -151,7 +151,7 @@ class L8BucketFolder(BucketFolder) :
 
 if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
-    #exit 0
+    exit(0)
 
 read_args_from_file = False
 json_file_params = 'download_s2_params.json'
