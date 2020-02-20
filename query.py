@@ -358,28 +358,6 @@ args = parser.parse_args()
 
 #args = parser.parse_args('-i /ext/Calculate/L2A/2018 -o /ext/Calculate/L4A/4tiles.txt -tids 39VVC 39UUB 39UVB 39VUC'.split(' '))
 
-<<<<<<< HEAD
-=======
-"""
-if (len(sys.argv) == 1) :
-    console_utils.print_usage(QUERY_ARGS_DEF)
-    exit(0)
-read_args_from_file = False
-<<<<<<< HEAD
-json_file_params = 's2_query_param.json'
-
-
-=======
-json_file_params = 's2_query_params.json'
->>>>>>> master
-args = ( sys.argv if not read_args_from_file
-        else console_utils.parse_args_from_json_file(json_file_params))
-if not console_utils.check_input_args(QUERY_ARGS_DEF,args) :
-    print ('ERROR: not valid input args')
-    exit(1)
-"""
->>>>>>> master
-
 startdate = datetime.datetime.strptime(args.sd,'%Y-%m-%d')
 enddate = datetime.datetime.strptime(args.ed,'%Y-%m-%d')
 

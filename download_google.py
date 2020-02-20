@@ -135,38 +135,6 @@ class L8BucketFolder(BucketFolder) :
 #  
 #################################################################################
 
-"""
-# Console arguments description
-DOWNLOAD_GOOGLE_ARGS = {
-    '-i': 'input csv file',
-    '-o': 'output folder',
-    '-cred': 'google credentials json file path',
-    '-log' : 'errors file log '
-}
-
-USAGE_EXAMPLES = ("download_google.py -i s2.csv -o raw/sentinel2\n")
-if (len(sys.argv) == 1) :
-    console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
-    exit(0)
-
-read_args_from_file = False
-json_file_params = 'download_s2_params.json'
-
-args = ( sys.argv if not read_args_from_file
-        else console_utils.parse_args_from_json_file(json_file_params))
-
-if not console_utils.check_input_args(DOWNLOAD_GOOGLE_ARGS,args) :
-    print ('ERROR: not valid input args')
-    exit(1)
-
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = console_utils.get_option_value(args,'-cred')
-input_csv = console_utils.get_option_value(args,'-i')
-output_path = console_utils.get_option_value(args,'-o')
-log_file = console_utils.get_option_value(args,'-log')
-"""
-
-
-
 parser = argparse.ArgumentParser(description=
     ('This script downloads raw (L1) products S2/L8 from Google Public Cloud Storage'))
     
