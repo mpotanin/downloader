@@ -14,21 +14,11 @@ import json
 import csv
 from io import BytesIO
 import requests
+from osgeo import gdal
+from osgeo import ogr
+from osgeo import osr
 
 
-
-QUERY_ARGS_DEF = {
-    '-u': 'username to query USGS/SciHub',
-    '-p': 'password to query USGS/SciHub',
-    '-b': 'border geojson file with polygon/multipolygon geometry',
-    '-sat': 'platform: s2|l8',
-    '-sd': 'start date yyyymmdd',
-    '-ed': 'end date yyyymmdd',
-    '-cld': 'max cloud filter',
-    '-o': 'output csv file name'
-}
-
-QUERY_USAGE_EXAMPLES = ("query.py -u user:password -b 1.geojson -p s2 -sd 20190501 -ed 20191001 -cld 50 -o 1.csv\n")
 
 
 class BBOX :
@@ -40,9 +30,38 @@ class BBOX :
         self.miny = miny
         self.maxx = maxx
         self.maxy = maxy
+
     def is_undefined (self) :
         if (self.minx>self.maxx) : return True
         else : return False
+
+    def merge (self, minx,miny,maxx,maxy) :
+        self.minx = min(self.minx,minx)
+        self.miny = min(self.miny,miny)
+        self.maxx= max(self.maxx,maxx)
+        self.maxy = max(self.maxy,maxy)
+
+    def merge_envp (self,envp) :
+        self.merge(envp[0],envp[2],envp[1],envp[3])
+
+
+def calc_BBOX_from_vector_file (vector_file):
+    vec_ds = gdal.OpenEx(vector_file, gdal.OF_VECTOR )
+    if vec_ds is None:
+        print ("Open failed: " + vector_file)
+        sys.exit( 1 )
+    lyr = vec_ds.GetLayer(0)
+    lyr.ResetReading()
+    feat = lyr.GetNextFeature()
+    bbox = BBOX()
+    while feat is not None:
+        geom = feat.GetGeometryRef()
+        bbox.merge_envp(geom.GetEnvelope())
+        feat = lyr.GetNextFeature()
+        # do something more..
+    feat = None
+    return bbox
+    
 
 
 class MetadataEntity :
@@ -72,12 +91,12 @@ class MetadataEntity :
 
 class MetadataOperations:
     @staticmethod
-    def create_csv_file (metadata_list, csv_file) :
+    def write_csv_file (metadata_list, csv_file, append) :
         """Creates csv file from metadata list."""
         try :
-            with open (csv_file, 'w', newline='') as file :
+            with open (csv_file, 'a' if append else 'w' , newline='') as file :
                 writer = csv.DictWriter(file, fieldnames=MetadataEntity.get_fieldnames())
-                writer.writeheader()
+                if not append: writer.writeheader()
                 for e in metadata_list :
                     writer.writerow(e.get_values())
                 file.close()
@@ -163,8 +182,9 @@ class SciHubMetadataExtractor :
     
     @staticmethod
     def __compose_q_param (geojson_file, stardate, enddate, cloud_max) :
-        bbox = GeoJSONParser.calculate_bbox(
-                GeoJSONParser.extract_geometry_from_geojson(geojson_file))
+        #bbox = GeoJSONParser.calculate_bbox(
+        #        GeoJSONParser.extract_geometry_from_geojson(geojson_file))
+        bbox = calc_BBOX_from_vector_file(geojson_file)
         if bbox.is_undefined() : 
             return ''
         else :
@@ -254,8 +274,10 @@ class USGSMetadataExtractor :
         if not self.__login(user,pwd) :
             print ('ERROR: authorization failed')
             return ''
-        bbox = GeoJSONParser.calculate_bbox(
-                GeoJSONParser.extract_geometry_from_geojson(geojson_file))
+        #bbox = GeoJSONParser.calculate_bbox(
+        #        GeoJSONParser.extract_geometry_from_geojson(geojson_file))
+        bbox = calc_BBOX_from_vector_file(geojson_file)
+
         if bbox.is_undefined() : return list()
 
         request_body = dict()
@@ -294,23 +316,6 @@ class USGSMetadataExtractor :
                     
         return list_result
 
-def init_console_args_from_json_file (args_def, json_file) :
-    args = list()
-    try:
-        with open (json_file, 'r') as file :
-            data_from_file=file.read()
-            json_obj = json.loads(data_from_file)
-            args.append(sys.argv[0])
-            for opt in json_obj:
-                args.append(opt)
-                args.append(json_obj[opt])
-    except:
-        print ('ERROR: parsing json file: ' + json_file)
-        return list()
-    return args
-
-
-
 #################################################################################################
 # main:
 # 1. Parse input args
@@ -320,69 +325,48 @@ def init_console_args_from_json_file (args_def, json_file) :
 #
 #################################################################################################
 
+
 parser = argparse.ArgumentParser(description=
     ('This script generates queries to USGS/SciHUB metedata services and writes '
     'response into csv file. Query destination depends on input satellite type: '
     'Landsat 8 -> USGS service,  Sentinel 2 -> SciHUB service.'))
 
-QUERY_ARGS_DEF = {
-    '-u': 'username to query USGS/SciHub',
-    '-p': 'password to query USGS/SciHub',
-    '-b': 'border geojson file with polygon/multipolygon geometry',
-    '-sat': 'platform: s2|l8',
-    '-sd': 'c',
-    '-ed': 'end date yyyymmdd',
-    '-cld': 'max cloud filter',
-    '-o': 'output csv file name'
-}
-
-QUERY_USAGE_EXAMPLES = ("query.py -u user:password -b 1.geojson -p s2 -sd 20190501 -ed 20191001 -cld 50 -o 1.csv\n")
 
 parser.add_argument('-u', required=True, metavar='user', 
                     help = 'Username to query USGS/SciHub')
 parser.add_argument('-p', required=True, metavar='pwd',
                     help='Password to query USGS/SciHub')
-parser.add_argument('-b', required=True, metavar='geojson AOI', 
-                    help = 'Border geojson file with polygon/multipolygon geometry')
+parser.add_argument('-b', required=True, metavar='vector AOI', 
+                    help = 'Border geojson/shp file with polygon/multipolygon geometry(ies) EPSG:4326')
 parser.add_argument('-sat', required=True, metavar='s2|l8',  
                     help= 'Platform: Sentinel 2 (s2) or Landsat 8 (l8)')
-parser.add_argument('-sd', required=True, metavar='start date yyyymmdd',
-                     help='Start date yyyymmdd')
-parser.add_argument('-ed', required=True, metavar='end date yyyymmdd',
-                     help='End date yyyymmdd')
-parser.add_argument('-cld', type=int, default=50, required=False, metavar='start date yyyymmdd',
-                     help='Start date yyyymmdd')
+parser.add_argument('-sd', required=True, metavar='start date yyyy-mm-dd',
+                     help='Start date yyyy-mm-dd')
+parser.add_argument('-ed', required=True, metavar='end date yyyy-mm-dd',
+                     help='End date yyyy-mm-dd')
+parser.add_argument('-cld', type=int, default=50, required=False, metavar='cloud max cover',
+                     help='Start date cloud max cover')
 parser.add_argument('-o', required=True, metavar='output file',
                      help='Output csv file')
+parser.add_argument('-a', help='Append to existing csv file', action='store_true')
+
 
 if (len(sys.argv) == 1) :
     parser.print_usage()
     exit(0)
 args = parser.parse_args()
 
+
 #args = parser.parse_args('-i /ext/Calculate/L2A/2018 -o /ext/Calculate/L4A/4tiles.txt -tids 39VVC 39UUB 39UVB 39VUC'.split(' '))
 
-"""
-if (len(sys.argv) == 1) :
-    console_utils.print_usage(QUERY_ARGS_DEF)
-    exit(0)
-read_args_from_file = False
-json_file_params = 's2_query_params.json'
-args = ( sys.argv if not read_args_from_file
-        else console_utils.parse_args_from_json_file(json_file_params))
-if not console_utils.check_input_args(QUERY_ARGS_DEF,args) :
-    print ('ERROR: not valid input args')
-    exit(1)
-"""
 
 startdate = datetime.datetime.strptime(args.sd,'%Y-%m-%d')
 enddate = datetime.datetime.strptime(args.ed,'%Y-%m-%d')
 
-
 list_metadata = ((SciHubMetadataExtractor() if (args.sat == 's2') else USGSMetadataExtractor()).
                  retrieve_all(args.u,args.p,args.b,startdate,enddate,args.cld))
 
-MetadataOperations.create_csv_file(list_metadata,args.o)
+MetadataOperations.write_csv_file(list_metadata,args.o,args.a)
 
 
 print (args.sat + ': '  + str(len(list_metadata)))

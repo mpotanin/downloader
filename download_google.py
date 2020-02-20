@@ -2,8 +2,7 @@
 Script downloads Sentinel2/Landsat8 from public Google S3 buckets. L8/S2 scenes are stored unpacked in buckets. 
 Each scene is downloaded file by file and stored into separate folder.
 """
-
-import console_utils
+import argparse
 import sys
 import os
 import time
@@ -18,19 +17,6 @@ import requests
 import hashlib
 import base64
 import shutil
-
-
-
-# Console arguments description
-DOWNLOAD_GOOGLE_ARGS = {
-    '-i': 'input csv file',
-    '-o': 'output folder',
-    '-cred': 'google credentials json file path',
-    '-log' : 'errors file log '
-}
-
-USAGE_EXAMPLES = ("download_google.py -i s2.csv -o raw/sentinel2\n")
-
 
 
 
@@ -149,6 +135,16 @@ class L8BucketFolder(BucketFolder) :
 #  
 #################################################################################
 
+"""
+# Console arguments description
+DOWNLOAD_GOOGLE_ARGS = {
+    '-i': 'input csv file',
+    '-o': 'output folder',
+    '-cred': 'google credentials json file path',
+    '-log' : 'errors file log '
+}
+
+USAGE_EXAMPLES = ("download_google.py -i s2.csv -o raw/sentinel2\n")
 if (len(sys.argv) == 1) :
     console_utils.print_usage(DOWNLOAD_GOOGLE_ARGS)
     #exit 0
@@ -167,7 +163,33 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = console_utils.get_option_value(ar
 input_csv = console_utils.get_option_value(args,'-i')
 output_path = console_utils.get_option_value(args,'-o')
 log_file = console_utils.get_option_value(args,'-log')
+"""
 
+
+
+parser = argparse.ArgumentParser(description=
+    ('This script downloads raw (L1) products S2/L8 from Google Public Cloud Storage'))
+    
+
+parser.add_argument('-i', required=True, metavar='input csv', 
+                    help = 'Input csv file with scene list')
+parser.add_argument('-o', required=True, metavar='output folder',
+                    help='Output folder to store data in')
+parser.add_argument('-cred', required=True, metavar='Google credentials json file', 
+                    help = 'Google credentials json file, required for authorization')
+parser.add_argument('-log', required=True, metavar='errors log',  
+                    help= 'Errors file log path')
+
+
+if (len(sys.argv) == 1) :
+    parser.print_usage()
+    exit(0)
+args = parser.parse_args()
+
+input_csv = args.i
+output_path = args.o
+log_file = args.log
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = args.cred
 
 num_success = 0
 num_error = 0
