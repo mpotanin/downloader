@@ -20,23 +20,6 @@ from osgeo import osr
 
 
 
-<<<<<<< HEAD
-=======
-QUERY_ARGS_DEF = {
-    '-u': 'username to query USGS/SciHub',
-    '-p': 'password to query USGS/SciHub',
-    '-b': 'border geojson file with polygon/multipolygon geometry',
-    '-sat': 'platform: s2|l8',
-    '-sd': 'start date yyyy-mm-dd',
-    '-ed': 'end date yyyy-mm-dd',
-    '-cld': 'max cloud filter',
-    '-o': 'output csv file name'
-}
-
-QUERY_USAGE_EXAMPLES = ("query.py -u user:password -b 1.geojson -p s2 -sd 20190501 -ed 20191001 -cld 50 -o 1.csv\n")
-
->>>>>>> master
-
 class BBOX :
     """
     Represents bounding box rectangular.
