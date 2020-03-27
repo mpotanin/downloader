@@ -18,12 +18,14 @@ from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 
+from common_utils import vector_operations as vop
 
 
+
+
+"""
 class BBOX :
-    """
-    Represents bounding box rectangular.
-    """
+    
     def __init__(self,minx=1e+100,miny=1e+100,maxx=-1e+100,maxy=-1e+100) :
         self.minx = minx
         self.miny = miny
@@ -60,7 +62,7 @@ def calc_BBOX_from_vector_file (vector_file):
         # do something more..
     feat = None
     return bbox
-    
+"""
 
 
 class MetadataEntity :
@@ -110,25 +112,25 @@ class GeoJSONParser :
     @staticmethod
     def calculate_bbox (geom_json) :
         
-        if not "type" in geom_json : return BBOX()
+        if not "type" in geom_json : return vop.BBOX()
 
         gtype = geom_json["type"]
         if (gtype == 'Point') :
-            return BBOX(geom_json["coordinates"][0],
+            return vop.BBOX(geom_json["coordinates"][0],
                         geom_json["coordinates"][1],
                         geom_json["coordinates"][0] + 1e-4,
                         geom_json["coordinates"][1] + + 1e-4)
         elif (gtype == 'Polygon' or gtype == 'MultiPolygon' ) :
             outline_ring = (geom_json["coordinates"][0] 
                             if gtype == 'Polygon' else geom_json["coordinates"][0][0])
-            bbox = BBOX()
+            bbox = vop.BBOX()
             for p in outline_ring :
                 if p[0]<bbox.minx : bbox.minx=p[0]
                 if p[0]>bbox.maxx : bbox.maxx=p[0]
                 if p[1]<bbox.miny : bbox.miny=p[1]
                 if p[1]>bbox.maxy : bbox.maxy=p[1]
             return bbox
-        else : return BBOX()
+        else : return vop.BBOX()
             
             
     
@@ -183,7 +185,7 @@ class SciHubMetadataExtractor :
     def __compose_q_param (geojson_file, stardate, enddate, cloud_max) :
         #bbox = GeoJSONParser.calculate_bbox(
         #        GeoJSONParser.extract_geometry_from_geojson(geojson_file))
-        bbox = calc_BBOX_from_vector_file(geojson_file)
+        bbox = vop.BBOX.calc_BBOX_from_vector_file(geojson_file)
         if bbox.is_undefined() : 
             return ''
         else :
@@ -275,7 +277,7 @@ class USGSMetadataExtractor :
             return ''
         #bbox = GeoJSONParser.calculate_bbox(
         #        GeoJSONParser.extract_geometry_from_geojson(geojson_file))
-        bbox = calc_BBOX_from_vector_file(geojson_file)
+        bbox = vop.BBOX.calc_BBOX_from_vector_file(geojson_file)
 
         if bbox.is_undefined() : return list()
 
