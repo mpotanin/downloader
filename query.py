@@ -23,48 +23,6 @@ from common_utils import vector_operations as vop
 
 
 
-"""
-class BBOX :
-    
-    def __init__(self,minx=1e+100,miny=1e+100,maxx=-1e+100,maxy=-1e+100) :
-        self.minx = minx
-        self.miny = miny
-        self.maxx = maxx
-        self.maxy = maxy
-
-    def is_undefined (self) :
-        if (self.minx>self.maxx) : return True
-        else : return False
-
-    def merge (self, minx,miny,maxx,maxy) :
-        self.minx = min(self.minx,minx)
-        self.miny = min(self.miny,miny)
-        self.maxx= max(self.maxx,maxx)
-        self.maxy = max(self.maxy,maxy)
-
-    def merge_envp (self,envp) :
-        self.merge(envp[0],envp[2],envp[1],envp[3])
-
-
-def calc_BBOX_from_vector_file (vector_file):
-    vec_ds = gdal.OpenEx(vector_file, gdal.OF_VECTOR )
-    if vec_ds is None:
-        print ("Open failed: " + vector_file)
-        sys.exit( 1 )
-    lyr = vec_ds.GetLayer(0)
-    lyr.ResetReading()
-    feat = lyr.GetNextFeature()
-    bbox = BBOX()
-    while feat is not None:
-        geom = feat.GetGeometryRef()
-        bbox.merge_envp(geom.GetEnvelope())
-        feat = lyr.GetNextFeature()
-        # do something more..
-    feat = None
-    return bbox
-"""
-
-
 class MetadataEntity :
     """
     Single scene metadata record. Only main fields are included.
@@ -107,50 +65,6 @@ class MetadataOperations:
         return True
 
 
-class GeoJSONParser :
-    
-    @staticmethod
-    def calculate_bbox (geom_json) :
-        
-        if not "type" in geom_json : return vop.BBOX()
-
-        gtype = geom_json["type"]
-        if (gtype == 'Point') :
-            return vop.BBOX(geom_json["coordinates"][0],
-                        geom_json["coordinates"][1],
-                        geom_json["coordinates"][0] + 1e-4,
-                        geom_json["coordinates"][1] + + 1e-4)
-        elif (gtype == 'Polygon' or gtype == 'MultiPolygon' ) :
-            outline_ring = (geom_json["coordinates"][0] 
-                            if gtype == 'Polygon' else geom_json["coordinates"][0][0])
-            bbox = vop.BBOX()
-            for p in outline_ring :
-                if p[0]<bbox.minx : bbox.minx=p[0]
-                if p[0]>bbox.maxx : bbox.maxx=p[0]
-                if p[1]<bbox.miny : bbox.miny=p[1]
-                if p[1]>bbox.maxy : bbox.maxy=p[1]
-            return bbox
-        else : return vop.BBOX()
-            
-            
-    
-    @staticmethod
-    def extract_geometry_from_geojson (geojson_file) :
-        """
-        Parse geometry type and coordinates from geojson into memory
-        Returns: json Dictionary object 
-        """
-        try:
-            with open (geojson_file, 'r') as file :
-                data_from_file=file.read()
-                json_obj = json.loads(data_from_file)
-                return json_obj["features"][0]["geometry"]
-        except:
-            print ("ERROR: can't extract geometry from file: " + geojson_file)
-            return dict()
-
-    
-
 class SciHubMetadataExtractor :
     base_url = 'https://scihub.copernicus.eu/dhus/search?format=json'
     page_num = 100
@@ -166,10 +80,6 @@ class SciHubMetadataExtractor :
         return wkt_poly
 
     @staticmethod
-    def __extract_cloudcover (raw_entity) :
-        return float(raw_entity["double"]["content"])
-
-    @staticmethod
     def __convert_raw_entity (raw_entity) :
         sceneid = raw_entity["title"]
         productid = raw_entity["id"]
@@ -182,34 +92,51 @@ class SciHubMetadataExtractor :
         return MetadataEntity(platform,sceneid,productid,acqdate,tileid)
     
     @staticmethod
-    def __compose_q_param (geojson_file, stardate, enddate, cloud_max) :
-        #bbox = GeoJSONParser.calculate_bbox(
-        #        GeoJSONParser.extract_geometry_from_geojson(geojson_file))
-        bbox = vop.BBOX.calc_BBOX_from_vector_file(geojson_file)
-        if bbox.is_undefined() : 
-            return ''
-        else :
-            q_param= 'footprint:' + SciHubMetadataExtractor.__convert_bbox_to_wktpolygon(bbox)
-            q_param+=' AND platformName:Sentinel-2 AND productType:S2MSI1C'
-            startdate_txt = startdate.strftime('%Y-%m-%dT%H:%M:%S.00Z')
-            enddate_txt = enddate.strftime('%Y-%m-%dT%H:%M:%S.00Z')
-
-            q_param+=' AND endPosition:[' + startdate_txt + ' TO ' + enddate_txt + ']'
-            q_param+=' AND beginPosition:[' + startdate_txt + ' TO ' + enddate_txt + ']'
-            
-            #endPosition:[2017-02-01T00:00:00.000Z TO 2019-08-07T12:23:31.000Z] 
-            #beginPosition:[2017-02-01T00:00:00.000Z TO 2019-08-07T12:23:31.000Z]
-            
-            return q_param
+    def __compose_q_param (vector_file, tiles, product, stardate, enddate, cloud_max) :
     
-    def retrieve_all (self, user, pwd, geojson_file, startdate, enddate, cloud_max) :
+        if (vector_file is None) and (tiles is None) : 
+            print('ERROR: AOI isn\'t defined, \"tiles" or "vector_file" have to be specified')
+            return ''
+
+        q_param = 'platformName:Sentinel-2'
+
+        startdate_txt = startdate.strftime('%Y-%m-%dT%H:%M:%S.00Z')
+        enddate_txt = enddate.strftime('%Y-%m-%dT23:59:59.999Z')
+        q_param+=' AND endPosition:[' + startdate_txt + ' TO ' + enddate_txt + ']'
+            
+        if vector_file is not None:
+            bbox = vop.BBOX.calc_BBOX_from_vector_file(vector_file)
+            if bbox.is_undefined() : 
+                print ('ERROR: not valid geojson file, can\'t parse geometry')
+                return ''
+            else :
+                q_param+= ' AND footprint:' + SciHubMetadataExtractor.__convert_bbox_to_wktpolygon(bbox)
+            
+        if product is not None:
+            if (product.lower()=='l2') :
+                q_param+=' AND productType:S2MSI2A'
+            else:
+                q_param+=' AND productType:S2MSI1C'
+        
+        if cloud_max is not None:
+            q_param+=' AND cloudcoverpercentage:[0 TO ' + str(cloud_max) + ']'
+
+        if tiles is not None:
+            q_param+=' AND ('
+            for tile in tiles:
+                q_param+='filename:*' + tile + '* OR '
+            q_param= q_param[:-3] + ')'
+
+        return q_param
+    
+    def retrieve_all (self, user, pwd, vector_file, tiles, product, startdate, enddate, cloud_max) :
         """
         main method that queries SciHUB service and saves metadata into in memory list
         """
         q_param = (SciHubMetadataExtractor.
-                    __compose_q_param(geojson_file,startdate,enddate,cloud_max))
+                    __compose_q_param(vector_file,tiles, product,startdate,enddate,cloud_max))
         if (q_param=='') :
-            print ("ERROR: can't compose 'q' parameter")
+            print ("ERROR: can't compose query string")
             return list()
 
         start = 0
@@ -223,10 +150,12 @@ class SciHubMetadataExtractor :
                 return ''
             json_response = json.loads(r.text)
             total = int(json_response["feed"]["opensearch:totalResults"])
+            if (total == 0) :
+                return list_result
+            
             raw_entities = json_response["feed"]["entry"]
             for re in raw_entities :
-                if (SciHubMetadataExtractor.__extract_cloudcover(re) <= cloud_max) :
-                    list_result.append(SciHubMetadataExtractor.__convert_raw_entity(re)) 
+                list_result.append(SciHubMetadataExtractor.__convert_raw_entity(re)) 
             
             if (start + SciHubMetadataExtractor.page_num >= total) :
                 break
@@ -271,13 +200,16 @@ class USGSMetadataExtractor :
 
         return MetadataEntity(platform,sceneid,productid,acqdate,tileid)
 
-    def retrieve_all (self, user, pwd, geojson_file, stardate, enddate, cloud_max) :
+    def retrieve_all (self, user, pwd, vector_file, stardate, enddate, cloud_max) :
         if not self.__login(user,pwd) :
             print ('ERROR: authorization failed')
             return ''
-        #bbox = GeoJSONParser.calculate_bbox(
-        #        GeoJSONParser.extract_geometry_from_geojson(geojson_file))
-        bbox = vop.BBOX.calc_BBOX_from_vector_file(geojson_file)
+
+        if (vector_file is None):
+            print('ERROR: AOI isn\'t specified')
+            return ''
+
+        bbox = vop.BBOX.calc_BBOX_from_vector_file(vector_file)
 
         if bbox.is_undefined() : return list()
 
@@ -337,7 +269,7 @@ parser.add_argument('-u', required=True, metavar='user',
                     help = 'Username to query USGS/SciHub')
 parser.add_argument('-p', required=True, metavar='pwd',
                     help='Password to query USGS/SciHub')
-parser.add_argument('-b', required=True, metavar='vector AOI', 
+parser.add_argument('-b', required=False, metavar='vector AOI', 
                     help = 'Border geojson/shp file with polygon/multipolygon geometry(ies) EPSG:4326')
 parser.add_argument('-sat', required=True, metavar='s2|l8',  
                     help= 'Platform: Sentinel 2 (s2) or Landsat 8 (l8)')
@@ -345,11 +277,13 @@ parser.add_argument('-sd', required=True, metavar='start date yyyy-mm-dd',
                      help='Start date yyyy-mm-dd')
 parser.add_argument('-ed', required=True, metavar='end date yyyy-mm-dd',
                      help='End date yyyy-mm-dd')
-parser.add_argument('-cld', type=int, default=50, required=False, metavar='cloud max cover',
+parser.add_argument('-cld', type=int, required=False, metavar='cloud max cover',
                      help='Start date cloud max cover')
 parser.add_argument('-o', required=True, metavar='output file',
                      help='Output csv file')
 parser.add_argument('-a', help='Append to existing csv file', action='store_true')
+parser.add_argument('-prod', metavar='L2/L1', help='Product type')
+parser.add_argument('-tiles',metavar='tiles list', help='Tiles list comma separated')
 
 
 if (len(sys.argv) == 1) :
@@ -362,15 +296,34 @@ args = parser.parse_args()
 
 startdate = datetime.datetime.strptime(args.sd,'%Y-%m-%d')
 enddate = datetime.datetime.strptime(args.ed,'%Y-%m-%d')
+tiles = None
+if args.tiles is not None:
+    tiles = args.tiles.split(',')
 
-list_metadata = ((SciHubMetadataExtractor() if (args.sat == 's2') else USGSMetadataExtractor()).
-                 retrieve_all(args.u,args.p,args.b,startdate,enddate,args.cld))
+list_metadata = list()
+
+if (args.sat == 's2') :
+    list_metadata = SciHubMetadataExtractor().retrieve_all(
+                                                            user=args.u,
+                                                            pwd=args.p,
+                                                            vector_file=args.b,
+                                                            startdate=startdate,
+                                                            enddate=enddate,
+                                                            cloud_max=args.cld,
+                                                            tiles=tiles,
+                                                            product=args.prod)
+else :
+    list_metadata = USGSMetadataExtractor().retrieve_all(args.u,
+                                                        args.p,
+                                                        args.b,
+                                                        startdate,
+                                                        enddate,
+                                                        args.cld)
 
 MetadataOperations.write_csv_file(list_metadata,args.o,args.a)
 
 
 print (args.sat + ': '  + str(len(list_metadata)))
-#print ('ERROR: SciHubMetadataExtractor:retrieve_all\n')
 
 
 
