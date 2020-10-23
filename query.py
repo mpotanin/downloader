@@ -258,6 +258,50 @@ class USGSMetadataExtractor :
 #
 #################################################################################################
 
+STYLE = {
+    # "NDVI": {
+    #     "gray" : [],
+    #     "red"  : [],
+    #     "green": [],
+    #     "blue" : []
+    # },
+    # "EVI": {
+    #     "gray" : [],
+    #     "red"  : [],
+    #     "green": [],
+    #     "blue" : []
+    # },
+    # "ARVI": {
+    #     "gray" : [],
+    #     "red"  : [],
+    #     "green": [],
+    #     "blue" : []
+    # },
+    # "SAVI": {
+    #     "gray" : [],
+    #     "red"  : [],
+    #     "green": [],
+    #     "blue" : []
+    # },
+    # "SARVI": {
+    #     "gray" : [],
+    #     "red"  : [],
+    #     "green": [],
+    #     "blue" : []
+    # },
+    "NDWI": {
+         "gray" : [21,101,181],
+         "red"  : [0,255,0],
+         "green": [255,255,0],
+         "blue" : [0,255,255],
+     },
+    "DEFAULT": {
+        "gray" : [101, 122, 126, 127, 132, 165, 201],
+        "red"  : [  0,  32,  64, 149, 255,   0,   0],
+        "green": [  0,   0,   0, 102, 255, 128,  64],
+        "blue" : [  0,   0,   0,   6, 128,   0,   0]
+    }
+}
 
 parser = argparse.ArgumentParser(description=
     ('This script generates queries to USGS/SciHUB metedata services and writes '

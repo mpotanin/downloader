@@ -1,12 +1,25 @@
 import os
 import sys
+import argparse
 
-with open("/vol_img/Uttar_Pradesh/4tiles.csv") as f:
+parser = argparse.ArgumentParser(description = 'Download products by parsing output csv file from query.py script. Requires wget')
+
+parser.add_argument('-i',required=True, metavar='input csv', help='Input csv file')
+parser.add_argument('-o', required=True, metavar='output foder', help='Output folder')
+
+
+if (len(sys.argv)==1):
+    parser.print_usage()
+    exit(0)
+
+args = parser.parse_args()
+
+
+
+with open(args.i) as f:
     lines = f.read().splitlines()
-
-output_folder = "/vol_img/Uttar_Pradesh/img_zip2"
-
-os.chdir(output_folder)
+lines.pop(0)
+os.chdir(args.o)
 for l in lines:
     columns = l.split(',')
     command = 'wget --content-disposition --continue --user=mpotanin --password=kosmosnimkiesa "https://scihub.copernicus.eu/dhus/odata/v1/Products(\''
