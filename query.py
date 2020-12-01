@@ -154,6 +154,11 @@ class SciHubMetadataExtractor :
                 return list_result
             
             raw_entities = json_response["feed"]["entry"]
+            if total == 1:
+                t = list()
+                t.append(raw_entities)
+                raw_entities = t.copy()
+
             for re in raw_entities :
                 list_result.append(SciHubMetadataExtractor.__convert_raw_entity(re)) 
             
