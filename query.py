@@ -8,6 +8,7 @@ Query destination depends on input satellite type:
 import argparse
 import sys
 import os
+import time
 import datetime
 import array
 import json
@@ -93,7 +94,13 @@ class SciHubMetadataExtractor :
     
     @staticmethod
     def __compose_q_param (vector_file, tiles, product, stardate, enddate, cloud_max) :
-    
+    #producttype:GRD OR producttype:SLC 
+    #sensoroperationalmode:IW
+    #'platformName:Sentinel-1'
+
+
+
+
         if (vector_file is None) and (tiles is None) : 
             print('ERROR: AOI isn\'t defined, \"tiles" or "vector_file" have to be specified')
             return ''
@@ -263,50 +270,7 @@ class USGSMetadataExtractor :
 #
 #################################################################################################
 
-STYLE = {
-    # "NDVI": {
-    #     "gray" : [],
-    #     "red"  : [],
-    #     "green": [],
-    #     "blue" : []
-    # },
-    # "EVI": {
-    #     "gray" : [],
-    #     "red"  : [],
-    #     "green": [],
-    #     "blue" : []
-    # },
-    # "ARVI": {
-    #     "gray" : [],
-    #     "red"  : [],
-    #     "green": [],
-    #     "blue" : []
-    # },
-    # "SAVI": {
-    #     "gray" : [],
-    #     "red"  : [],
-    #     "green": [],
-    #     "blue" : []
-    # },
-    # "SARVI": {
-    #     "gray" : [],
-    #     "red"  : [],
-    #     "green": [],
-    #     "blue" : []
-    # },
-    "NDWI": {
-         "gray" : [21,101,181],
-         "red"  : [0,255,0],
-         "green": [255,255,0],
-         "blue" : [0,255,255],
-     },
-    "DEFAULT": {
-        "gray" : [101, 122, 126, 127, 132, 165, 201],
-        "red"  : [  0,  32,  64, 149, 255,   0,   0],
-        "green": [  0,   0,   0, 102, 255, 128,  64],
-        "blue" : [  0,   0,   0,   6, 128,   0,   0]
-    }
-}
+
 
 parser = argparse.ArgumentParser(description=
     ('This script generates queries to USGS/SciHUB metedata services and writes '
@@ -320,7 +284,7 @@ parser.add_argument('-p', required=True, metavar='pwd',
                     help='Password to query USGS/SciHub')
 parser.add_argument('-b', required=False, metavar='vector AOI', 
                     help = 'Border geojson/shp file with polygon/multipolygon geometry(ies) EPSG:4326')
-parser.add_argument('-sat', required=True, metavar='s2|l8',  
+parser.add_argument('-sat', required=True, metavar='s2|l8|s1',  
                     help= 'Platform: Sentinel 2 (s2) or Landsat 8 (l8)')
 parser.add_argument('-sd', required=True, metavar='start date yyyy-mm-dd',
                      help='Start date yyyy-mm-dd')
@@ -352,15 +316,31 @@ if args.tiles is not None:
 list_metadata = list()
 
 if (args.sat == 's2') :
-    list_metadata = SciHubMetadataExtractor().retrieve_all(
-                                                            user=args.u,
-                                                            pwd=args.p,
-                                                            vector_file=args.b,
-                                                            startdate=startdate,
-                                                            enddate=enddate,
-                                                            cloud_max=args.cld,
-                                                            tiles=tiles,
-                                                            product=args.prod)
+    if tiles is None:
+        list_metadata = SciHubMetadataExtractor().retrieve_all(
+                                                                user=args.u,
+                                                                pwd=args.p,
+                                                                vector_file=args.b,
+                                                                startdate=startdate,
+                                                                enddate=enddate,
+                                                                cloud_max=args.cld,
+                                                                tiles=tiles,
+                                                                product=args.prod)
+    else:
+        for tile in tiles:
+            print('quering ' + tile + ' ...', end = ' ')
+            list_metadata += SciHubMetadataExtractor().retrieve_all(
+                                                                user=args.u,
+                                                                pwd=args.p,
+                                                                vector_file=args.b,
+                                                                startdate=startdate,
+                                                                enddate=enddate,
+                                                                cloud_max=args.cld,
+                                                                tiles=[tile],
+                                                                product=args.prod)
+            time.sleep(5)
+            print ('done')
+
 else :
     list_metadata = USGSMetadataExtractor().retrieve_all(args.u,
                                                         args.p,
