@@ -39,6 +39,10 @@ else:
                   + columns[1][11:15] + '/' + str(int(columns[1][15:17])) + '/' + str(int(columns[1][17:19])) + '" "' + columns[1] + '" ' 
                   + '--recursive --request-payer requester')
         os.system(command + ' > /dev/null')
+        if len(os.listdir(columns[1]))==0:
+            print(columns[1] + " - isn't available on AWS")
+            os.rmdir(columns[1])
+            continue:
         
         command = ('aws s3 cp "s3://sentinel-s2-l2a/products/' 
           + columns[1][11:15] + '/' + str(int(columns[1][15:17])) + '/' + str(int(columns[1][17:19])) + '/' + columns[1]  
