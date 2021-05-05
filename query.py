@@ -310,7 +310,7 @@ args = parser.parse_args()
 startdate = datetime.datetime.strptime(args.sd,'%Y-%m-%d')
 enddate = datetime.datetime.strptime(args.ed,'%Y-%m-%d')
 tiles = None
-if args.tiles is not None:
+if args.t is not None:
     tiles = args.t.split(',')
 
 list_metadata = list()
