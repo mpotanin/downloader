@@ -296,7 +296,7 @@ parser.add_argument('-o', required=True, metavar='output file',
                      help='Output csv file')
 parser.add_argument('-a', help='Append to existing csv file', action='store_true')
 parser.add_argument('-prod', metavar='L2/L1', help='Product type')
-parser.add_argument('-tiles',metavar='tiles list', help='Tiles list comma separated')
+parser.add_argument('-t',metavar='tiles list', help='Tiles list comma separated')
 
 
 if (len(sys.argv) == 1) :
@@ -311,7 +311,7 @@ startdate = datetime.datetime.strptime(args.sd,'%Y-%m-%d')
 enddate = datetime.datetime.strptime(args.ed,'%Y-%m-%d')
 tiles = None
 if args.tiles is not None:
-    tiles = args.tiles.split(',')
+    tiles = args.t.split(',')
 
 list_metadata = list()
 
@@ -353,7 +353,3 @@ MetadataOperations.write_csv_file(list_metadata,args.o,args.a)
 
 
 print (args.sat + ': '  + str(len(list_metadata)))
-
-
-
-
