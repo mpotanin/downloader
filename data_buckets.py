@@ -50,12 +50,20 @@ class AWS_COG:
     bucket = 'sentinel-cogs'
     root_dir = 'sentinel-s2-l2a-cogs'
     base_url = 'https://sentinel-cogs.s3.us-west-2.amazonaws.com'
+    #S2B_39UVB_20190818_0_L2A
 
     @staticmethod
     def init(aws_access_key_id, aws_secret_access_key):
         AWS_COG.s3_client = boto3.client('s3',
                                      aws_access_key_id=aws_access_key_id,
                                      aws_secret_access_key=aws_secret_access_key)
+    @staticmethod
+    def tile(scene):
+        return scene[4:9]
+
+    @staticmethod
+    def month_day(scene):
+        return scene[14:18]
 
     @staticmethod
     def list_scenes_by_tile_year_month (tile,year,month, single_version_only = False):
